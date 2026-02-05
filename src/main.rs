@@ -1,44 +1,33 @@
-use log::{info};
-use pretty_env_logger;
-use dotenvy::{self, dotenv};
-use sqlx::postgres::PgPoolOptions;
+#[macro_use]
+extern crate log;
+
+extern crate pretty_env_logger;
+
 use axum::{
     routing::{delete, get, post},
     Router,
 };
 
+use dotenvy::dotenv;
+
+use sqlx::postgres::PgPoolOptions;
+
 mod handlers;
 mod models;
+mod persistence;
 
 use handlers::*;
 
-
 #[tokio::main]
 async fn main() {
+    pretty_env_logger::init();
+    dotenv().ok();
 
-    // Initialize pretty_env_logger
-    // Initialize dotenv
-    let pretty_env_logger = pretty_env_logger::init();
-    let dotenv = dotenv().ok();
-
-    // create pg connection pool
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&std::env::var("DATABASE_URL").expect("DATABASE_URL must be set."))
         .await
         .expect("Failed to create Postgres connection pool!");
-
-    
-    // Using slqx, execute a SQL query that selects all questions from the questions table.
-    // Use the `unwrap` or `expect` method to handle errors. This is just some test code to
-    // make sure we can connect to the database.
-    let recs = sqlx::query!("SELECT * FROM questions")
-        .fetch_all(&pool)
-        .await
-        .unwrap();
-
-    info!("********* Question Records *********");
-    info!("{:?}", recs);
 
     let app = Router::new()
         .route("/question", post(create_question))
